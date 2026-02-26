@@ -1,0 +1,65 @@
+┌─────────────────────────────────────────────────────────────┐
+│                        STATE (Clipboard)                     │
+├─────────────────────────────────────────────────────────────┤
+│  user_question: "What is machine learning?"                  │
+│  intent:        ___________                                  │
+│  topic:         ___________                                  │
+│  summary:       ___________                                  │
+│  final_output:  ___________                                  │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+                   ┌─────────────────┐
+                   │   Interpreter   │  READS: user_question
+                   │                 │  WRITES: intent, topic
+                   └────────┬────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  user_question: "What is machine learning?"                  │
+│  intent:        "explain"                    ← filled        │
+│  topic:         "What is machine learning?"  ← filled        │
+│  summary:       ___________                                  │
+│  final_output:  ___________                                  │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+                   ┌─────────────────┐
+                   │   Summarizer    │  READS: topic
+                   │                 │  WRITES: summary
+                   └────────┬────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  user_question: "What is machine learning?"                  │
+│  intent:        "explain"                                    │
+│  topic:         "What is machine learning?"                  │
+│  summary:       "Here is a brief explanation..." ← filled    │
+│  final_output:  ___________                                  │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+                   ┌─────────────────┐
+                   │    Formatter    │  READS: topic, summary
+                   │                 │  WRITES: final_output
+                   └────────┬────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│  user_question: "What is machine learning?"                  │
+│  intent:        "explain"                                    │
+│  topic:         "What is machine learning?"                  │
+│  summary:       "Here is a brief explanation..."             │
+│  final_output:  "Topic: What is...\n\nHere is..." ← filled   │
+└─────────────────────────────────────────────────────────────┘
+
+
+
+
+Questions: 
+Where does state come from?	LangGraph creates it from your invoke() input
+How do agents get state?	LangGraph passes it as the function argument
+How do agents update state?	Their return dict gets merged into state
+Is it the same state object?	Yes — one state flows through all agents
+Who manages the flow?	LangGraph, based on the edges you defined
+The agents don't call each other directly. LangGraph is the orchestrator — it runs each agent in order and handles passing/merging the state.

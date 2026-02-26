@@ -1,0 +1,4 @@
+langgraph>=0.2.0
+langgraph-cli[inmem]
+langchain-openai
+python-dotenv
