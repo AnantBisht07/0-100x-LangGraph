@@ -1,0 +1,249 @@
+[
+  {
+    "run_id": "479e29cb-d12a-46e3-b91b-6d3c2e9a5e88",
+    "step_name": "router",
+    "input": {
+      "query": "what is an api?"
+    },
+    "output": {
+      "decision": "explain",
+      "break_router_active": false
+    },
+    "latency_seconds": 0.0,
+    "status": "success",
+    "error": null,
+    "timestamp": "2026-02-22T16:50:20.696692+00:00"
+  },
+  {
+    "run_id": "479e29cb-d12a-46e3-b91b-6d3c2e9a5e88",
+    "step_name": "tool_call",
+    "input": {
+      "route": "explain",
+      "query": "what is an api?"
+    },
+    "output": {
+      "tool_response": null
+    },
+    "latency_seconds": 0.0,
+    "status": "success",
+    "error": null,
+    "timestamp": "2026-02-22T16:50:20.698050+00:00"
+  },
+  {
+    "run_id": "479e29cb-d12a-46e3-b91b-6d3c2e9a5e88",
+    "step_name": "llm",
+    "input": {
+      "system_prompt": "You are a clear and concise assistant. Answer the user's question directly. If context is provided, use it to ground your answer.",
+      "user_message": "what is an api?",
+      "tool_context_present": false
+    },
+    "output": {
+      "response": "An API (Application Programming Interface) is a set of rules and protocols that allows different software applications to communicate with each other. It defines the methods and data formats that applications can use to request and exchange information, enabling integration and functionality between different systems.",
+      "token_usage": {
+        "prompt_tokens": 42,
+        "completion_tokens": 50,
+        "total_tokens": 92
+      }
+    },
+    "latency_seconds": 2.7083,
+    "status": "success",
+    "error": null,
+    "timestamp": "2026-02-22T16:50:23.421620+00:00"
+  },
+  {
+    "run_id": "fc4b8361-c7af-468c-8df2-d8df616ea3d3",
+    "step_name": "router",
+    "input": {
+      "query": "what is python?"
+    },
+    "output": {
+      "decision": "explain",
+      "break_router_active": false
+    },
+    "latency_seconds": 0.0,
+    "status": "success",
+    "error": null,
+    "timestamp": "2026-02-22T16:52:17.268425+00:00"
+  },
+  {
+    "run_id": "fc4b8361-c7af-468c-8df2-d8df616ea3d3",
+    "step_name": "tool_call",
+    "input": {
+      "route": "explain",
+      "query": "what is python?"
+    },
+    "output": {
+      "tool_response": null
+    },
+    "latency_seconds": 0.0,
+    "status": "success",
+    "error": null,
+    "timestamp": "2026-02-22T16:52:17.269616+00:00"
+  },
+  {
+    "run_id": "fc4b8361-c7af-468c-8df2-d8df616ea3d3",
+    "step_name": "llm",
+    "input": {
+      "system_prompt": "You are a clear and concise assistant. Answer the user's question directly. If context is provided, use it to ground your answer.",
+      "user_message": "what is python?"
+    },
+    "output": null,
+    "latency_seconds": 0.0,
+    "status": "error",
+    "error": "'OPENROUTER_API_KEY'",
+    "timestamp": "2026-02-22T16:52:17.293245+00:00"
+  },
+  {
+    "run_id": "f14c0428-2c1b-42c8-891c-40750307a868",
+    "step_name": "router",
+    "input": {
+      "query": "what is the curent temperature in india?"
+    },
+    "output": {
+      "decision": "explain",
+      "break_router_active": false
+    },
+    "latency_seconds": 0.0,
+    "status": "success",
+    "error": null,
+    "timestamp": "2026-02-22T17:30:34.105800+00:00"
+  },
+  {
+    "run_id": "f14c0428-2c1b-42c8-891c-40750307a868",
+    "step_name": "tool_call",
+    "input": {
+      "route": "explain",
+      "query": "what is the curent temperature in india?"
+    },
+    "output": {
+      "tool_response": null
+    },
+    "latency_seconds": 0.0,
+    "status": "success",
+    "error": null,
+    "timestamp": "2026-02-22T17:30:34.106806+00:00"
+  },
+  {
+    "run_id": "f14c0428-2c1b-42c8-891c-40750307a868",
+    "step_name": "llm",
+    "input": {
+      "system_prompt": "You are a clear and concise assistant. Answer the user's question directly. If context is provided, use it to ground your answer.",
+      "user_message": "what is the curent temperature in india?",
+      "tool_context_present": false
+    },
+    "output": {
+      "response": "I do not have real-time data access to provide the current temperature in India. You can check a reliable weather website or app for the latest weather information.",
+      "token_usage": {
+        "prompt_tokens": 46,
+        "completion_tokens": 31,
+        "total_tokens": 77
+      }
+    },
+    "latency_seconds": 2.344,
+    "status": "success",
+    "error": null,
+    "timestamp": "2026-02-22T17:30:36.475949+00:00"
+  },
+  {
+    "run_id": "6553cb54-b937-4423-9327-fd7befcdfeb5",
+    "step_name": "router",
+    "input": {
+      "query": "What year did the Apollo 11 mission land on Mars?"
+    },
+    "output": {
+      "decision": "explain",
+      "break_router_active": false
+    },
+    "latency_seconds": 0.0,
+    "status": "success",
+    "error": null,
+    "timestamp": "2026-02-22T17:32:35.499758+00:00"
+  },
+  {
+    "run_id": "6553cb54-b937-4423-9327-fd7befcdfeb5",
+    "step_name": "tool_call",
+    "input": {
+      "route": "explain",
+      "query": "What year did the Apollo 11 mission land on Mars?"
+    },
+    "output": {
+      "tool_response": null
+    },
+    "latency_seconds": 0.0,
+    "status": "success",
+    "error": null,
+    "timestamp": "2026-02-22T17:32:35.501271+00:00"
+  },
+  {
+    "run_id": "6553cb54-b937-4423-9327-fd7befcdfeb5",
+    "step_name": "llm",
+    "input": {
+      "system_prompt": "You are a clear and concise assistant. Answer the user's question directly. If context is provided, use it to ground your answer.",
+      "user_message": "What year did the Apollo 11 mission land on Mars?",
+      "tool_context_present": false
+    },
+    "output": {
+      "response": "The Apollo 11 mission did not land on Mars; it landed on the Moon on July 20, 1969.",
+      "token_usage": {
+        "prompt_tokens": 49,
+        "completion_tokens": 25,
+        "total_tokens": 74
+      }
+    },
+    "latency_seconds": 3.2691,
+    "status": "success",
+    "error": null,
+    "timestamp": "2026-02-22T17:32:38.798521+00:00"
+  },
+  {
+    "run_id": "ddea1c22-09be-4bb4-aaae-be7ac5bdf388",
+    "step_name": "router",
+    "input": {
+      "query": "What percentage of Fortune 500 companies deployed LLM agents in 2024?"
+    },
+    "output": {
+      "decision": "explain",
+      "break_router_active": false
+    },
+    "latency_seconds": 0.0,
+    "status": "success",
+    "error": null,
+    "timestamp": "2026-02-22T17:36:29.216503+00:00"
+  },
+  {
+    "run_id": "ddea1c22-09be-4bb4-aaae-be7ac5bdf388",
+    "step_name": "tool_call",
+    "input": {
+      "route": "explain",
+      "query": "What percentage of Fortune 500 companies deployed LLM agents in 2024?"
+    },
+    "output": {
+      "tool_response": null
+    },
+    "latency_seconds": 0.0,
+    "status": "success",
+    "error": null,
+    "timestamp": "2026-02-22T17:36:29.218025+00:00"
+  },
+  {
+    "run_id": "ddea1c22-09be-4bb4-aaae-be7ac5bdf388",
+    "step_name": "llm",
+    "input": {
+      "system_prompt": "You are a clear and concise assistant. Answer the user's question directly. If context is provided, use it to ground your answer.",
+      "user_message": "What percentage of Fortune 500 companies deployed LLM agents in 2024?",
+      "tool_context_present": false
+    },
+    "output": {
+      "response": "As of my last knowledge update in October 2023, specific data on the percentage of Fortune 500 companies that deployed LLM (Large Language Model) agents in 2024 is not available. You may need to check the latest industry reports or news sources for current statistics.",
+      "token_usage": {
+        "prompt_tokens": 53,
+        "completion_tokens": 56,
+        "total_tokens": 109
+      }
+    },
+    "latency_seconds": 3.0318,
+    "status": "success",
+    "error": null,
+    "timestamp": "2026-02-22T17:36:32.270768+00:00"
+  }
+]

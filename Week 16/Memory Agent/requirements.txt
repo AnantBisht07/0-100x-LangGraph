@@ -1,0 +1,11 @@
+# Memory-Controlled Conversational Agent Requirements
+
+# Core Dependencies
+langgraph
+langchain-core
+langchain-openai
+
+
+langgraph-cli
+
+python-dotenv

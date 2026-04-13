@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(init)",
+      "Skill(status)",
+      "Bash(dir \"C:\\\\EADP\\\\Week 16\")"
+    ]
+  }
+}

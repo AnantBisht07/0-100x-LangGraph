@@ -1,0 +1,642 @@
+================================================================
+prompts.py
+================================================================
+
+Open prompts.py. This is the simplest file in the project but one of the most important by design. Its only job is to store the two system prompts we are testing. Nothing else. No logic, no API calls, no file operations. Just the prompts and one helper function.
+
+Lines 1 to 9 are the docstring. It explains the purpose of the file. In production code, every file starts with a docstring so any developer who opens it immediately understands what it does without reading the code.
+
+Line 11: PROMPT_VERSIONS = {
+
+This opens a dictionary. We write the variable name in all uppercase letters because it is a constant — a value that is set once and never changes while the program is running. Python does not enforce constants the way some languages do, but the uppercase naming is a well-understood convention that signals to other developers: do not modify this value at runtime.
+
+This dictionary is defined at module level, outside any function or class. That means the moment Python imports this file, this dictionary exists in memory. Any other file that writes from prompts import PROMPT_VERSIONS gets access to it immediately.
+
+Line 12: "control": (
+
+This is the first key of the dictionary. The key is the string "control". The parenthesis after the colon opens a grouping — we use this so we can write the string value across multiple lines without Python thinking the statement ended.
+
+Line 13: "You are a concise assistant. Answer clearly and briefly."
+
+This is the actual system prompt for the control version. It gives the model one simple instruction: be concise. We call it the control because it is our baseline — the version we are currently using or the simpler version we want to compare against.
+
+Line 14: ),
+
+The closing parenthesis and comma. The comma separates this key-value pair from the next one.
+
+Lines 15 to 18: "variation": ( "You are a structured, detailed assistant that explains reasoning clearly. " "Break down your answer step by step where appropriate." ),
+
+This is the variation prompt. Notice there are two quoted strings next to each other on lines 16 and 17. When Python sees two string literals placed directly next to each other with no operator between them, it automatically joins them into one single string at compile time. So these two lines become one long string. We split it across two lines purely for readability — the string is too long to fit comfortably on one line.
+
+This prompt is more prescriptive. It tells the model to be detailed, to explain reasoning clearly, and to break things into steps. It is longer than the control prompt because it gives more specific instructions. The whole experiment is designed to measure whether this extra specificity produces better responses according to our metrics.
+
+Line 19: }
+
+Closes the dictionary.
+
+Line 22: def get_prompt(version: str) -> str:
+
+This defines a function called get_prompt. It takes one argument, version, which must be a string — that is what the colon str annotation means. The arrow and str after the closing parenthesis is the return type hint. This function will always return a string. We write these type hints not because Python enforces them at runtime, but because they make the code self-documenting. Any developer reading the function signature instantly knows what goes in and what comes out.
+
+Why write this function at all when you could just write PROMPT_VERSIONS["control"] directly? Two reasons. First, if someone passes a key that does not exist, a direct dictionary access raises a confusing KeyError. This function raises a clear, descriptive ValueError. Second, having a single function as the access point means if we ever change how prompts are stored — say, loading them from a database instead — we only change this function. All callers stay the same.
+
+Line 35: if version not in PROMPT_VERSIONS:
+
+The in keyword checks whether a value exists as a key in the dictionary. Putting not before it inverts the condition. So this line reads: if the version argument that was passed to us is not one of the keys in our dictionary, then run the block below.
+
+Line 36: raise ValueError(
+
+We raise a ValueError. ValueError is Python's built-in exception for when a function receives an argument that has the right type but an invalid value. A string is the right type for version, but "v99" is an invalid value if it is not in the dictionary.
+
+Lines 37 to 38: f"Unknown prompt version '{version}'. " f"Available: {list(PROMPT_VERSIONS.keys())}"
+
+This is the error message. It is an f-string — the f before the quote enables variable interpolation inside curly braces. We embed version in the message so the developer sees exactly what they passed. We call PROMPT_VERSIONS.keys() which returns the dictionary's keys as a view object, then wrap it in list() to convert it into a plain list so it prints cleanly. The developer sees something like: Unknown prompt version 'v99'. Available: ['control', 'variation']. That message is immediately actionable.
+
+Line 40: return PROMPT_VERSIONS[version]
+
+If the version exists in the dictionary, we safely return its value — the corresponding system prompt string. We only reach this line if the if-block above did not raise an exception.
+
+
+================================================================
+evaluator.py
+================================================================
+
+Open evaluator.py. This file measures one LLM response. That is all it does. It receives a text response, a latency measurement, and optionally token data, and it returns a dictionary of numbers that describe that response. It has no knowledge of the API, no knowledge of files, no knowledge of the dashboard. Pure input-output transformation.
+
+Line 11: import random
+
+We import the random module from Python's standard library. We need it on line 49 to generate a simulated user rating.
+
+Line 12: from typing import Optional
+
+Optional is a type annotation helper. Optional[int] means a parameter can be either an integer or the value None. We use this to clearly communicate that total_tokens does not have to be passed by the caller.
+
+Line 15: class Evaluator:
+
+We define a class. A class groups related behaviour together under one name. Here, all metric computation belongs inside Evaluator. Using a class also makes the evaluator easy to replace or extend. The batch runner only knows that it creates an Evaluator and calls .evaluate() on it. If we ever want a different evaluation strategy, we swap out the class.
+
+Lines 16 to 25: This is the class docstring. It lists the four metrics this class computes. Always document what a class does so developers understand its contract without reading every method.
+
+Line 27: def evaluate(
+
+This opens the evaluate method definition.
+
+Line 28: self,
+
+self is the reference to the current instance of the class. Every method in a class receives self as its first parameter automatically. It is how the method can access other attributes or methods of the same object.
+
+Line 29: response_text: str,
+
+The first real parameter. This is the text string that the model returned. The colon str is the type annotation.
+
+Line 30: latency_seconds: float,
+
+The elapsed time in seconds for the API call. This is measured by the batch runner, not here. The evaluator receives it as a ready-made number because measuring time belongs to the code that made the call, not the code that analyses the response.
+
+Line 31: total_tokens: Optional[int] = None,
+
+The total token count from the API response. Optional[int] means it can be an integer or None. The = None after it is the default value — if the caller does not pass this argument at all, it defaults to None. We make it optional because not all API providers return token usage.
+
+Line 32: simulate_rating: bool = True,
+
+A boolean flag that defaults to True. When True, we generate a random rating to stand in for human feedback. When False, no rating is generated. This flag exists so that in the future, when you have real human raters, you can pass False and supply the actual rating yourself.
+
+Line 33: ) -> dict:
+
+Closes the parameter list. The arrow and dict means this method returns a dictionary.
+
+Line 48: word_count = self._count_words(response_text)
+
+We call the private method _count_words, passing in the response text. The result — an integer count of words — is stored in word_count. We delegate this to a separate method so the counting logic is isolated and independently readable. The underscore before _count_words is a Python convention meaning this method is internal. It is not intended to be called from outside the class.
+
+Line 49: user_rating = random.randint(3, 5) if simulate_rating else None
+
+Let us break this down fully. random.randint(3, 5) generates a random integer. The 3 and 5 are both inclusive endpoints, so the result is always one of 3, 4, or 5. We use 3 to 5 rather than 1 to 5 because real user ratings tend to cluster in the upper half of a scale — very few people rate something a 1 or 2 unless it completely failed. The simulated range reflects a realistic distribution.
+
+The if simulate_rating else None part is a ternary expression. It works like this: evaluate the condition simulate_rating, and if it is True, use the left side (random.randint(3, 5)), and if it is False, use the right side (None). So when simulate_rating is True we get a random number. When it is False we get None, and the caller is expected to assign a real rating separately.
+
+Lines 51 to 55: metrics = { "word_count": word_count, "latency_seconds": round(latency_seconds, 4), "user_rating": user_rating, }
+
+We build the output dictionary. Three keys are always present. word_count is the integer from line 48. latency_seconds is the value passed in, rounded to four decimal places with round(). We round here even though the batch runner also rounds, as a defensive measure — the evaluator should always produce consistent precision regardless of what is passed. user_rating is either an integer or None depending on the simulate flag.
+
+Line 58: if total_tokens is not None:
+
+We check whether the caller actually provided a token count. is not None is the correct way in Python to check whether a value is specifically not the None object. We do not write if total_tokens because that would also evaluate as False for 0 — if the token count was zero, we would incorrectly skip adding it.
+
+Line 59: metrics["total_tokens"] = total_tokens
+
+If the token count exists, we add it to the dictionary as a new key. We only add it in this conditional block because if we added it unconditionally, every entry where no token data was available would have "total_tokens": null in the JSON. Null values break the aggregator's averaging logic and make the output file messier. Including the key only when the value is real keeps everything clean.
+
+Line 61: return metrics
+
+We return the finished dictionary. At this point it has either three keys (word_count, latency_seconds, user_rating) or four keys (with total_tokens added) depending on whether token data was available.
+
+Line 63: def _count_words(self, text: str) -> int:
+
+The private word-counting method. Takes a text string, returns an integer count. The return type hint -> int makes this contract explicit.
+
+Line 73: return len(text.split()) if text.strip() else 0
+
+Let us read this from the inside out. text.strip() removes any whitespace characters — spaces, tabs, newlines — from both the beginning and end of the string. In Python, an empty string evaluates as False when used in a boolean context. A non-empty string evaluates as True.
+
+So the ternary reads: if text.strip() is truthy (the string has actual content after stripping), then return len(text.split()). Otherwise return 0.
+
+text.split() with no argument splits the string on any whitespace. It handles single spaces, multiple spaces, tabs, and newlines all the same way, and it discards empty strings that result from consecutive whitespace. So "hello   world" becomes the list ["hello", "world"]. len() counts the elements in that list, giving us 2. This is why we use split() instead of counting individual characters — we want words, not characters.
+
+
+================================================================
+batch_runner.py
+================================================================
+
+Open batch_runner.py. This is the engine of the experiment. Everything flows through here. It creates the API client, loops through all 20 inputs, makes 2 API calls per input, passes results to the evaluator, and returns one complete structured dictionary. It is the busiest file in the project but still clean because every piece of logic is delegated to a focused helper.
+
+Line 12: import os
+
+We need os to read environment variables with os.getenv.
+
+Line 13: import time
+
+We need time to measure API call latency with time.perf_counter.
+
+Line 15: from dotenv import load_dotenv
+
+Imports the load_dotenv function which reads the .env file and loads its key-value pairs into the process environment.
+
+Line 16: from openai import OpenAI
+
+Imports the OpenAI client class which we use to make API calls.
+
+Line 18: from evaluator import Evaluator
+
+Imports our own Evaluator class from the evaluator.py file in the same folder.
+
+Line 19: from prompts import PROMPT_VERSIONS
+
+Imports the PROMPT_VERSIONS dictionary from prompts.py. We import this here even though main.py also imports it, because if anyone calls run_batch_test directly without going through main.py, the prompt versions are still available.
+
+Line 21: load_dotenv()
+
+This call sits at module level, outside any function. This is intentional. Module-level code in Python runs exactly once — the moment the file is imported by any other file. So load_dotenv() runs the instant Python processes this file, before any function is ever called. By the time the first API call happens, the environment variables from .env are already loaded and ready. If we put this call inside run_batch_test instead, it would re-read the .env file on every call to run_batch_test, which is unnecessary.
+
+Line 24: def _get_client() -> tuple[OpenAI, str]:
+
+A private helper function — the underscore prefix signals it is internal to this module. The return type hint tuple[OpenAI, str] tells us this function returns a tuple containing two values: first an OpenAI client object, second a string. We separate API setup into its own function so that the main run_batch_test function does not have to deal with credential resolution. Each function does one thing.
+
+Line 35: api_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY")
+
+os.getenv reads an environment variable and returns its string value, or returns None if the variable is not set. The or between the two calls means: evaluate the left side first, and if it is truthy (a non-empty string), use it. If it is falsy (None or empty), evaluate the right side and use that. So we support two different environment variable names. Students using OpenAI directly set OPENAI_API_KEY. Students using OpenRouter set OPENROUTER_API_KEY. Either way, the same code works.
+
+Line 36: if not api_key:
+
+After the or logic above, api_key is either a string with the key, or None if both variables were unset. if not api_key evaluates to True when api_key is None or an empty string. In that case we raise the error below.
+
+Lines 37 to 39: raise EnvironmentError("No API key found. Set OPENAI_API_KEY or OPENROUTER_API_KEY in your .env file.")
+
+We raise EnvironmentError, not ValueError or a generic Exception. EnvironmentError is the semantically correct exception — it means something is wrong with the process environment, not with the code logic. The error message is specific: it tells the developer exactly which variable names to set and where to set them.
+
+Line 40: base_url = os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1")
+
+os.getenv called with two arguments. The second argument is the default value returned if the environment variable is not set. So if OPENAI_BASE_URL is not in the .env file, base_url becomes the OpenRouter URL. If it is set, base_url uses whatever was in the file.
+
+Line 41: model_name = os.getenv("MODEL_NAME", "openai/gpt-4o-mini")
+
+Same pattern. If MODEL_NAME is not in the environment, we default to gpt-4o-mini. This makes the system work out of the box with a sensible default while still allowing customisation.
+
+Line 42: client = OpenAI(api_key=api_key, base_url=base_url)
+
+We create the OpenAI client object. We pass our resolved api_key and base_url. The base_url override is what allows this client to work with OpenRouter — OpenRouter uses the same API format as OpenAI but at a different URL.
+
+Line 43: return client, model_name
+
+We return two values. Writing two values separated by a comma creates a tuple automatically. The caller will unpack this into two separate variables.
+
+Line 46: def _call_llm(client: OpenAI, model: str, system_prompt: str, user_input: str) -> tuple[str, float, int | None]:
+
+Another private helper. This one makes exactly one API call and returns exactly three values: the response text as a string, the latency as a float, and the token count as either an integer or None. The pipe syntax int | None is a Python 3.10 union type. It replaces the older Optional[int] syntax from the typing module. Both mean the same thing: the value can be an int or it can be None.
+
+Why extract a single LLM call into its own function? Because the batch runner calls it 40 times — 20 inputs times 2 prompts. If we inline this logic in the loop, any change to how we make calls would require editing code in multiple places. Here, it is in one place. If we want to add retry logic, timeout handling, or headers for rate limiting, we add it once inside _call_llm and all 40 calls benefit.
+
+Line 59: start = time.perf_counter()
+
+perf_counter() returns the value of a high-resolution performance counter as a floating point number in seconds. It is specifically designed for measuring elapsed time with high precision. We call it immediately before the API call to record the start moment.
+
+Lines 60 to 66: response = client.chat.completions.create(...)
+
+The API call. model is the model name string. messages is a list with two dictionaries. The first dictionary has role set to "system" and content set to system_prompt — this is the system instruction that defines how the model behaves. The second dictionary has role set to "user" and content set to user_input — this is the test question. This is the standard OpenAI chat format.
+
+Line 67: latency = round(time.perf_counter() - start, 4)
+
+We call perf_counter() again immediately after the response arrives. The difference between this value and start gives the elapsed time in seconds. round(..., 4) gives four decimal places — precision to the tenth of a millisecond. We round to four digits for consistency throughout the system.
+
+Line 69: text = response.choices[0].message.content or ""
+
+response.choices is a list of candidate responses. We take index 0, which is always the primary response. .message is the message object. .content is the actual text string. The or "" at the end is a fallback. Some API providers return None for content in edge cases. Instead of crashing on None, we fall back to an empty string and let the evaluator handle it gracefully — _count_words will return 0 for an empty string.
+
+Line 70: tokens = response.usage.total_tokens if response.usage else None
+
+response.usage is the token usage object. Not all providers populate it. We check if response.usage is truthy before accessing .total_tokens. If response.usage is None or missing, the ternary returns None. This None gets passed to the evaluator, which will then omit the total_tokens key from the metrics dictionary.
+
+Line 72: return text, latency, tokens
+
+Three values returned as a tuple. The caller will unpack them on a single line.
+
+Line 75: def run_batch_test(inputs: list[str], prompt_a: str, prompt_b: str) -> dict:
+
+The main public function of this file. inputs is a list of strings — the 20 test questions. list[str] is the type hint, meaning a list where every element is a string. prompt_a is the control system prompt string. prompt_b is the variation system prompt string. The function returns a dict.
+
+Line 100: client, model = _get_client()
+
+We call _get_client and unpack the returned tuple into two separate variables in one line. client gets the OpenAI object. model gets the model name string. This is Python's tuple unpacking. It is equivalent to getting the tuple first and then indexing it, but this is cleaner and more readable.
+
+Line 101: evaluator = Evaluator()
+
+We create one Evaluator instance here, outside the loop below. This one object will be reused for all 40 evaluate calls. We do not create a new Evaluator inside the loop because there is no state inside Evaluator that needs to reset between calls. Creating objects has a small cost — doing it once is always better than doing it 40 times when the result is identical.
+
+Line 103: results = {"control": [], "variation": []}
+
+We initialise the output structure before the loop begins. The dictionary has two keys, "control" and "variation", each starting with an empty list. As we process each input, we will append one metrics dictionary to each list. After 20 inputs, results["control"] will have 20 entries and results["variation"] will have 20 entries.
+
+Line 104: total = len(inputs)
+
+We compute the length of the inputs list once before the loop. We could call len(inputs) inside the loop on line 107, but calling it once and storing it in a variable is cleaner. total is used only for the progress message.
+
+Line 106: for i, user_input in enumerate(inputs, start=1):
+
+enumerate() is a built-in Python function that wraps an iterable and returns pairs of (index, value) on each iteration. Without start=1, the index would begin at 0. We pass start=1 so the progress counter shown to the user starts at 1, which is natural for humans. On each iteration, i is the current count (1, 2, 3...) and user_input is the actual question string from the inputs list.
+
+Line 107: print(f"  Running input {i}/{total}: {user_input[:60]}...")
+
+We print a progress line on every iteration so the user can see the batch is advancing. i and total give the progress fraction. user_input[:60] is a slice operation — it takes the first 60 characters of the user_input string. If the string is shorter than 60 characters, it returns the full string unchanged. If longer, it cuts it at 60. This prevents progress lines from being excessively long in the terminal. The three dots after the slice are literal characters added to indicate the message is a preview.
+
+Line 110: text_a, latency_a, tokens_a = _call_llm(client, model, prompt_a, user_input)
+
+We call _call_llm with the control system prompt prompt_a and the current user_input. The function returns a tuple of three values and we unpack all three immediately into text_a (the response text), latency_a (the elapsed seconds), and tokens_a (the token count or None). This all happens on one line — this is the tuple unpacking pattern again.
+
+Line 111: metrics_a = evaluator.evaluate(text_a, latency_a, tokens_a)
+
+We pass all three values to the evaluator. It returns a dictionary with word_count, latency_seconds, user_rating, and conditionally total_tokens. We store this dictionary in metrics_a.
+
+Line 112: metrics_a["input"] = user_input
+
+We add the original question as a new key directly into the metrics dictionary. We do this after evaluation rather than inside the evaluator because the evaluator should stay generic. It should not know about or store the input question. The batch runner is the right place to annotate results with context.
+
+Line 113: metrics_a["output"] = text_a
+
+We add the full model response as another key. This means the final dictionary for each input contains not just the metrics but also the raw question and raw answer, making every result self-contained and auditable.
+
+Line 114: results["control"].append(metrics_a)
+
+We append the complete metrics dictionary to the control list. After this line, results["control"] has one more entry.
+
+Lines 117 to 121: The variation block.
+
+This is structurally identical to lines 110 to 114, with three differences. We pass prompt_b instead of prompt_a. We use the variable names text_b, latency_b, tokens_b, and metrics_b to avoid overwriting the control values. And we append to results["variation"] instead of results["control"]. This symmetry is the heart of the A/B test: same user_input, same client, same model — only the system prompt changes.
+
+Line 123: return results
+
+After the for loop finishes processing all 20 inputs, we return the complete results dictionary. It has 20 entries in "control" and 20 in "variation", giving 40 metrics dictionaries total.
+
+
+================================================================
+aggregator.py
+================================================================
+
+Open aggregator.py. This file has no imports at all. No external libraries, no standard library, no other modules from our project. It performs pure arithmetic on Python data structures. This is intentional — a file with zero dependencies is always safe to import, easy to test, and impossible to break through a bad library update.
+
+Line 12: def _average(values: list) -> float:
+
+A private helper function. The underscore prefix means it is internal to this module — only the two public functions below should call it. It takes a list and returns a float. We extract this into its own function because we call the averaging logic four times — once per metric — and writing the same code four times would mean if we ever change the logic, we would have to change it in four places.
+
+Line 17: valid = [v for v in values if v is not None]
+
+This is a list comprehension. It builds a new list containing only the elements from values that are not None. We need this filter because some entries in the batch results may have no token data — we stored None in those cases. If we tried to call sum() on a list containing None values, Python would raise a TypeError because you cannot add None to a number. By filtering first, we guarantee valid contains only real numbers.
+
+The syntax reads exactly like English: for every v in values, include v in the new list, but only if v is not None.
+
+Line 18: return round(sum(valid) / len(valid), 4) if valid else 0.0
+
+sum(valid) adds all the numbers in the list. len(valid) gives the count of numbers. Dividing gives the arithmetic mean. round(..., 4) limits the result to four decimal places.
+
+But there is a critical guard here: if valid. After the filter on line 17, valid might be completely empty — if every single entry had None for a given metric. If we tried to divide by len(valid) when valid is empty, len would return 0 and we would get a ZeroDivisionError. The ternary expression prevents this. In Python an empty list is falsy, so if valid evaluates to False when the list is empty. In that case we return 0.0 as a safe default instead of crashing.
+
+Line 21: def aggregate_metrics(results: dict) -> dict:
+
+The main public function. It receives the full results dictionary returned by run_batch_test. That dictionary has "control" and "variation" as keys, each mapping to a list of 20 metric dictionaries. This function returns a new dictionary with the same two keys, but each maps to a single dictionary of averaged values.
+
+Line 47: summary = {}
+
+We initialise an empty dictionary that will be filled during the loop and returned at the end.
+
+Line 49: for version, entries in results.items():
+
+results.items() returns the key-value pairs of the dictionary as an iterable. On the first pass through the loop, version is the string "control" and entries is the list of 20 control metric dictionaries. On the second pass, version is "variation" and entries is the 20 variation dictionaries. We loop generically — we do not hardcode the version names. This means if someone adds a third prompt version to the system, this function handles it automatically with no changes needed here.
+
+Lines 50 to 55: summary[version] = { "average_word_count": _average([e.get("word_count") for e in entries]), "average_latency": _average([e.get("latency_seconds") for e in entries]), "average_tokens": _average([e.get("total_tokens") for e in entries]), "average_user_rating": _average([e.get("user_rating") for e in entries]), }
+
+We assign a new dictionary to summary[version]. Let us walk through one value in detail.
+
+_average([e.get("word_count") for e in entries])
+
+The list comprehension [e.get("word_count") for e in entries] loops through every entry in the entries list. e is one metrics dictionary. e.get("word_count") reads the word_count value from that dictionary. We use .get() rather than direct indexing because .get() returns None if the key is missing, instead of raising a KeyError. The result of the comprehension is a list of 20 values, for example [42, 38, 67, 51, 44, ...]. We pass this list to _average which filters out any None values and computes the mean.
+
+We repeat this pattern four times — once for word_count, once for latency_seconds, once for total_tokens, and once for user_rating. The spaces used to align the right-hand sides of the four dictionary entries are cosmetic — they are just spaces in the source code that make the four lines easier to compare visually.
+
+Line 57: return summary
+
+After both loop iterations complete, summary has two keys — "control" and "variation" — each containing four averaged values. We return it.
+
+Line 60: def detect_regression(summary: dict) -> str | None:
+
+The regression detection function. The return type str | None means it returns either a string message or None. The pipe syntax is Python 3.10 union type notation. The caller checks the return value — if it is None, no regression. If it is a string, regression was detected. We return a string rather than raising an exception or printing directly because the caller decides how to display it. main.py prints it. dashboard.py renders it in a red box.
+
+Line 76: control_rating = summary.get("control", {}).get("average_user_rating")
+
+Two .get() calls chained together. The first, summary.get("control", {}), retrieves the control summary dictionary. The second argument {} is the default — if "control" does not exist in summary for some reason, we get an empty dictionary instead of a KeyError. The second .get("average_user_rating") retrieves the rating value from that dictionary, defaulting to None if the key is missing. So control_rating ends up as either a float or None.
+
+Line 77: variation_rating = summary.get("variation", {}).get("average_user_rating")
+
+Same pattern for the variation. We now have both ratings, each either a number or None.
+
+Lines 79 to 80: if control_rating is None or variation_rating is None: return None
+
+If either rating is missing we cannot make a comparison. We return None — meaning no regression detected. We use the or operator: if the first condition is True we already know the whole expression is True and Python does not even evaluate the second condition. This is called short-circuit evaluation.
+
+Line 82: if variation_rating < control_rating:
+
+This is the regression check. If the variation's average user rating is strictly less than the control's average user rating, the new prompt performed worse. We flag it as a regression.
+
+Line 83: diff = round(control_rating - variation_rating, 4)
+
+We calculate the gap between the two ratings. control_rating minus variation_rating gives a positive number representing how much worse the variation is. Round to four decimal places.
+
+Lines 84 to 88: return ( f"⚠  Potential regression detected. " f"Variation rating ({variation_rating}) is {diff} points " f"below control ({control_rating})." )
+
+We build and return the warning string. Three f-strings next to each other inside parentheses get joined into one string. We include the exact numbers — variation_rating, diff, and control_rating — so the developer immediately sees the magnitude of the regression without having to look anything up. The ⚠ symbol is a Unicode warning character that draws attention in the terminal.
+
+Line 90: return None
+
+If we reached this line, variation_rating was not less than control_rating — it was equal or greater. The variation is performing at least as well as the control. No regression. We return None.
+
+
+================================================================
+dashboard.py
+================================================================
+
+Open dashboard.py. This file is entirely about presentation. It reads the JSON file that main.py saved to disk and renders a visual web dashboard in the browser. It makes no API calls. It runs no experiments. It only transforms saved data into visual elements. This separation means the dashboard can be opened, refreshed, or shared at any time without re-running the expensive LLM calls.
+
+Line 16: import json
+
+We need json to read and parse the results_log.json file.
+
+Line 17: import os
+
+We need os for os.path.exists to check whether the results file is present before trying to open it.
+
+Line 19: import pandas as pd
+
+Pandas is a data manipulation library. We give it the alias pd because typing pandas every time is verbose and pd is the universal convention. We need pandas because Streamlit's table and chart widgets expect data in a specific format called a DataFrame — a two-dimensional labelled table structure. We cannot pass plain Python lists or dictionaries directly to st.bar_chart or st.dataframe.
+
+Line 20: import streamlit as st
+
+Streamlit is the web dashboard library. The alias st is again a universal convention. Every element you see rendered in the browser — titles, tables, charts, metric boxes, coloured banners — is produced by calling a function on this st object.
+
+Line 22: from aggregator import aggregate_metrics, detect_regression
+
+We import the same two functions that main.py uses. The dashboard re-runs aggregate_metrics on the raw results data every time it loads. This means the dashboard always produces fresh averages directly from the source data, rather than depending on the pre-computed summary_log.json which could theoretically be out of date.
+
+Line 24: RESULTS_FILE = "results_log.json"
+
+Module-level constant for the file name. Both the _load_results helper function and the warning message in render_dashboard reference this constant. If the file name ever changes, we update it in one place and both references update automatically.
+
+Line 31: def _load_results() -> dict | None:
+
+Private helper function. Its only job is to safely read the results file and return its contents, or return None if the file does not exist. dict | None is the union return type — either a dictionary or None.
+
+Line 33: if not os.path.exists(RESULTS_FILE): return None
+
+os.path.exists returns True if a file exists at the given path, False otherwise. not inverts it. If the file does not exist — because main.py has not been run yet — we return None immediately. The render_dashboard function uses this None as a signal to show a warning message instead of trying to build charts with no data.
+
+Lines 35 to 36: with open(RESULTS_FILE, "r", encoding="utf-8") as f: return json.load(f)
+
+We open the file in read mode. encoding="utf-8" ensures correct handling of any special characters. json.load(f) reads the entire file contents and parses them from JSON into a Python dictionary. We return that dictionary directly.
+
+Line 39: def _build_comparison_df(summary: dict) -> pd.DataFrame:
+
+This helper converts the aggregated summary dictionary into a pandas DataFrame so it can be displayed as a table with st.dataframe(). pd.DataFrame in the return type annotation tells us this function returns a DataFrame object.
+
+Lines 44 to 49: labels = { "average_word_count": "Avg Word Count", "average_latency": "Avg Latency (s)", "average_tokens": "Avg Tokens", "average_user_rating": "Avg User Rating", }
+
+A local dictionary that maps internal key names to human-readable display names. We define this separately from the data so that if we want to rename a column label, we only change it here. This is a presentation concern — the internal key names like "average_word_count" are what the code uses, the display names like "Avg Word Count" are what the user sees.
+
+Line 50: rows = []
+
+We create an empty list that will hold one dictionary per metric row.
+
+Lines 51 to 56: for key, label in labels.items(): rows.append({ "Metric": label, "Control": summary.get("control", {}).get(key, 0), "Variation": summary.get("variation", {}).get(key, 0), })
+
+We loop through the labels dictionary. On each iteration, key is the internal name like "average_word_count" and label is the display name like "Avg Word Count". We append a dictionary with three keys: Metric gets the display name, Control gets the corresponding value from the control summary, Variation gets the corresponding value from the variation summary.
+
+summary.get("control", {}).get(key, 0) is two chained .get() calls. The first retrieves the control dictionary, defaulting to empty dict if missing. The second retrieves the specific metric value using key, defaulting to 0 if missing. This double-safe approach ensures we never crash even if the summary data is incomplete.
+
+After the loop, rows is a list of four dictionaries, one per metric.
+
+Line 57: return pd.DataFrame(rows).set_index("Metric")
+
+pd.DataFrame(rows) converts the list of dictionaries into a DataFrame. Each dictionary becomes a row. The dictionary keys become column names: "Metric", "Control", "Variation". .set_index("Metric") takes the Metric column and makes it the row label — the index — instead of a regular data column. Now the table has metric names as row labels and two data columns: Control and Variation. This is exactly the format st.dataframe() will render as a clean comparison table.
+
+Line 64: def render_dashboard() -> None:
+
+The main dashboard function. All of the browser UI is built inside this function. -> None means it returns nothing — it just produces side effects (rendered UI elements).
+
+Line 65: st.set_page_config(page_title="PromptLab Pro", layout="wide")
+
+This must be the very first Streamlit call in any dashboard function. It configures the browser tab. page_title sets the text shown in the browser tab. layout="wide" makes the dashboard use the full width of the browser window instead of the default narrow centered column. Wide layout is essential here because we are placing charts side by side — in narrow layout they would be too small to read.
+
+Line 66: st.title("PromptLab Pro — A/B Evaluation Dashboard")
+
+Renders the largest heading Streamlit provides at the top of the page. Every st.something() call produces one visible element in the browser.
+
+Line 68: results = _load_results()
+
+We call our helper. This either gives us the parsed results dictionary or None.
+
+Lines 70 to 75: if results is None: st.warning(...) return
+
+If results is None, we call st.warning() which renders a yellow notification box in the browser with the message inside. Then we call return to exit render_dashboard entirely. Without this guard, every st call below this point would crash because it depends on having real data. By returning early, the user sees a helpful message in the browser instead of an error.
+
+Line 77: summary = aggregate_metrics(results)
+
+We call the aggregator's function, passing the raw results data. This computes the four averages for each version. We do this inside the dashboard instead of reading summary_log.json because re-computing from raw data is more reliable — the raw data is the ground truth.
+
+Line 80: st.header("1. Input Summary")
+
+st.header renders a medium-sized heading. We use numbers in the headings to match the four sections in the README so students can follow along with the documentation.
+
+Line 81: n_inputs = len(results.get("control", []))
+
+We count how many entries are in the control list. This is the number of test inputs that were actually processed. We use .get("control", []) to safely access the list, defaulting to an empty list if the key is missing.
+
+Line 82: col1, col2, col3 = st.columns(3)
+
+st.columns(3) creates a horizontal three-column layout and returns three column objects. We unpack them into three variables on the same line. Anything rendered inside col1 appears in the left column, col2 in the middle, col3 in the right column.
+
+Lines 83 to 85: col1.metric("Total Test Inputs", n_inputs) col2.metric("Prompt Versions", 2) col3.metric("Total LLM Calls", n_inputs * 2)
+
+st.metric renders a styled box with a large bold number and a smaller label above it. It is the standard Streamlit widget for showing key performance indicators. We show the input count, the number of versions (always 2), and the total API calls made (inputs times 2).
+
+Line 87: st.divider()
+
+Renders a full-width horizontal line across the page. Visually separates sections.
+
+Line 90: st.header("2. Metrics Comparison")
+
+Section 2 heading.
+
+Line 91: df = _build_comparison_df(summary)
+
+We call our helper to build the DataFrame. df is the standard variable name for a DataFrame.
+
+Line 92: st.dataframe(df.style.format("{:.3f}"), use_container_width=True)
+
+st.dataframe renders the DataFrame as an interactive table in the browser. The table is sortable by clicking column headers. df.style.format("{:.3f}") applies a number format to every cell in the table. The format string "{:.3f}" means: display as fixed-point decimal with 3 decimal places. So 42.3 displays as 42.300 and 1.21 displays as 1.210. All numbers are aligned consistently. use_container_width=True stretches the table to fill the full column width.
+
+Line 94: st.divider()
+
+Another section separator.
+
+Line 97: st.header("3. Visual Comparison")
+
+Section 3 heading.
+
+Line 99: chart_col1, chart_col2 = st.columns(2)
+
+We create a two-column layout for the charts. Two charts on the left, two on the right, making a 2x2 grid.
+
+Lines 101 to 110: with chart_col1:
+
+The with statement makes everything indented inside this block render in the left column. st.subheader("Avg User Rating") renders a smaller heading inside the column.
+
+Lines 103 to 109: rating_data = pd.DataFrame({ "Version": ["Control", "Variation"], "Avg User Rating": [ summary["control"]["average_user_rating"], summary["variation"]["average_user_rating"], ], }).set_index("Version")
+
+We build a small DataFrame with two rows. The "Version" column has the two labels: "Control" and "Variation". The "Avg User Rating" column has the two corresponding values pulled from the summary dictionary. .set_index("Version") makes Version the row label. The resulting DataFrame has two rows and one data column.
+
+Line 110: st.bar_chart(rating_data)
+
+Streamlit reads the DataFrame and renders a bar chart. One bar per row. Bar height corresponds to the value in the data column. Both bars appear side by side. The row labels appear on the x-axis. This chart immediately shows at a glance whether Control or Variation had a higher average rating.
+
+Lines 112 to 120: We repeat the exact same structure for Avg Word Count, still inside chart_col1. Same DataFrame pattern, same st.bar_chart call, different data.
+
+Lines 122 to 141: with chart_col2:
+
+The right column. We build and render the latency chart and the token usage chart using the same DataFrame and bar_chart pattern. Four charts total — two in each column.
+
+Line 143: st.divider()
+
+Section separator before the last section.
+
+Line 146: st.header("4. Regression Detection")
+
+Section 4 heading.
+
+Line 147: regression_msg = detect_regression(summary)
+
+We call the same detect_regression function from aggregator.py. It returns either a warning string or None.
+
+Lines 148 to 149: if regression_msg: st.error(regression_msg)
+
+st.error renders a red alert box in the browser. The text inside is the warning message with the exact numbers. Red is visually arresting — the developer sees it immediately without scrolling.
+
+Lines 150 to 154: else: st.success("✅  No regression detected...")
+
+st.success renders a green box. Green communicates that the experiment passed — the variation performed at least as well as the control. The developer can proceed with confidence.
+
+Lines 157 to 158: if __name__ == "__main__": render_dashboard()
+
+Streamlit does not use this block when you run streamlit run dashboard.py — Streamlit imports the file and runs its own startup code. But we include it as a standard convention so the file behaves predictably in all situations.
+
+
+================================================================
+main.py
+================================================================
+
+Open main.py. This file is the entry point and the coordinator. It does not contain any business logic. It defines the test data, calls the right functions in the right sequence, handles the one error that can stop everything, prints the results, saves the files, and tells the user what to do next. If you removed main.py, all the other files would still work — they would just need a different way to be invoked.
+
+Line 15: import json
+
+We need json to write the results and summary dictionaries to JSON files with json.dump.
+
+Lines 17 to 19: from aggregator import aggregate_metrics, detect_regression from batch_runner import run_batch_test from prompts import PROMPT_VERSIONS
+
+We import everything we need from our own modules. No external library imports needed in main.py because all the external library usage (openai, dotenv, streamlit, pandas) happens inside the respective modules. main.py only deals with our own abstractions.
+
+Lines 24 to 45: TEST_INPUTS = [ ... ]
+
+A list of 20 strings defined at module level as a constant (uppercase name). These are the questions both prompt versions will be tested against. We chose questions about AI and machine learning because they are relevant to what students are learning, but more importantly they cover different types of reasoning — some are definitional (What is X), some are explanatory (How does X work), and some are comparative (What is the difference between X and Y). Diverse input types matter in evaluation because a prompt that works well for simple definitions might fail for complex comparisons. Testing only one type of question would give misleading results.
+
+Lines 47 to 48: RESULTS_FILE = "results_log.json" SUMMARY_FILE = "summary_log.json"
+
+Two output file names as constants. We save two files because they serve different purposes. results_log.json is the raw data — 40 complete metrics dictionaries including the actual input text and output text. summary_log.json is the aggregated view — just 8 numbers (4 averages for each of 2 versions). The dashboard reads results_log.json. summary_log.json is for quick human inspection.
+
+Line 51: def main() -> None:
+
+The main function. No parameters, no return value. It is the function that runs the entire experiment.
+
+Lines 52 to 54: print("=" * 60) print("  PromptLab Pro — A/B Batch Evaluation") print("=" * 60)
+
+"=" * 60 creates a string of 60 equals signs by repeating the single character 60 times. This is a Python string multiplication. The three print statements together produce a formatted header banner in the terminal.
+
+Lines 55 to 57: print(f"\nTest inputs : {len(TEST_INPUTS)}") print(f"Versions    : control vs variation") print(f"Total calls : {len(TEST_INPUTS) * 2}\n")
+
+We print three numbers before the batch starts. len(TEST_INPUTS) is 20. len(TEST_INPUTS) * 2 is 40 — 20 inputs times 2 prompts equals 40 API calls. We print this upfront so the user knows what is about to happen. 40 API calls takes time. If the user did not know this was coming, they might think the program froze. The \n at the start and end add blank lines for visual breathing room.
+
+Line 63: prompt_a = PROMPT_VERSIONS["control"]
+
+We extract the control system prompt string from the PROMPT_VERSIONS dictionary. prompt_a now holds the full text of the control prompt. We pass the actual string to run_batch_test rather than the key name, because the batch runner does not need to know about the registry — it just needs the text.
+
+Line 64: prompt_b = PROMPT_VERSIONS["variation"]
+
+Same for the variation prompt string.
+
+Lines 66 to 70: try: results = run_batch_test(TEST_INPUTS, prompt_a, prompt_b) except EnvironmentError as e: print(f"\n[Config Error] {e}") return
+
+We wrap run_batch_test in a try-except block. We catch only EnvironmentError — the specific exception that _get_client raises when the API key is missing. We do not use a broad except Exception because any other exception — a network error, an API error, a bug in our code — should surface with its full traceback so we can diagnose it. Catching only the expected exception and letting everything else propagate is the correct practice. When we do catch EnvironmentError, we print the error message in a "[Config Error]" prefix so the user knows this is a configuration problem, not a code bug, and then we return to exit main cleanly.
+
+Line 75: summary = aggregate_metrics(results)
+
+We pass the raw results to the aggregator. It returns the summary dictionary of averaged values.
+
+Line 80: regression_msg = detect_regression(summary)
+
+We run regression detection. The result is stored in regression_msg, which is either a warning string or None.
+
+Lines 82 to 84: print("\n" + "=" * 60) print("  Results Summary") print("=" * 60)
+
+Another formatted banner for the results section.
+
+Lines 86 to 89: for version, metrics in summary.items(): print(f"\n  [{version.upper()}]") for metric, value in metrics.items(): print(f"    {metric:<25}: {value}")
+
+Two nested for loops. The outer loop iterates over the two versions. version.upper() converts "control" to "CONTROL" — we print it in uppercase inside square brackets so the section heading stands out. The inner loop iterates over the four metrics inside each version's summary. metric:<25 in the f-string is a format specifier. The colon starts the format spec. < means left-align the text. 25 is the minimum field width. So the metric name is padded with spaces on the right to be exactly 25 characters wide. This makes all four colons line up vertically, which makes the output table easy to scan.
+
+Lines 92 to 95: if regression_msg: print(regression_msg) else: print("✅  No regression detected.")
+
+After the results table, we print the regression signal. If regression_msg is a string (truthy), we print it. If it is None (falsy), we print the success message.
+
+Lines 100 to 101: with open(RESULTS_FILE, "w", encoding="utf-8") as f: json.dump(results, f, indent=2, ensure_ascii=False)
+
+We save the full raw results to disk. "w" mode opens the file for writing — it creates the file if it does not exist and overwrites it if it does. json.dump converts the Python dictionary to a JSON string and writes it to the file. indent=2 produces formatted output with 2-space indentation at each level, making the file readable by a human. ensure_ascii=False allows any Unicode character to be written as-is — without this, characters like ⚠ would be escaped to their Unicode code point.
+
+Lines 103 to 104: with open(SUMMARY_FILE, "w", encoding="utf-8") as f: json.dump(summary, f, indent=2, ensure_ascii=False)
+
+Same pattern, writing the summary dictionary to the second file. The summary file is much smaller than the results file — just 8 numbers versus 40 complete records.
+
+Lines 106 to 107: print(f"\nResults saved to : {RESULTS_FILE}") print(f"Summary saved to : {SUMMARY_FILE}")
+
+We confirm to the user that both files were written successfully and show them exactly where to find them.
+
+Lines 112 to 116: print("\n" + "=" * 60) print("  Launch Dashboard") print("=" * 60) print("\nTo view the visual comparison dashboard, run:") print("\n    streamlit run dashboard.py\n")
+
+We print the instruction for the next step. We do not launch Streamlit automatically from inside this function. Streamlit is designed to be the top-level process — it starts a local web server, takes control of the terminal, and blocks. If we tried to launch it as a subprocess from inside main.py, it would be fragile and the terminal experience would be confusing. The right pattern is to print the command and let the user run it themselves in a fresh terminal session.
+
+Lines 119 to 120: if __name__ == "__main__": main()
+
+__name__ is a built-in Python variable. When you run a file directly with python main.py, Python automatically sets __name__ to the string "__main__". When another Python file imports from main.py using from main import something, Python sets __name__ to "main" — the module name — instead. The if block only evaluates to True in the first case. So main() is called when you run the file directly, but not when it is imported. Without this guard, importing anything from main.py would immediately execute the entire experiment every time, which is never what you want from an import.

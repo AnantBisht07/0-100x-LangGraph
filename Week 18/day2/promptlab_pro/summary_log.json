@@ -1,0 +1,14 @@
+{
+  "control": {
+    "average_word_count": 89.0,
+    "average_latency": 2.86,
+    "average_tokens": 145.7,
+    "average_user_rating": 4.0
+  },
+  "variation": {
+    "average_word_count": 513.2,
+    "average_latency": 12.0251,
+    "average_tokens": 737.85,
+    "average_user_rating": 3.85
+  }
+}

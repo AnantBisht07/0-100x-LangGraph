@@ -1,0 +1,37 @@
+# Multimodal Conversational Planner Agent - Requirements
+
+# Core LangChain dependencies
+langchain
+langchain-openai
+langchain-core
+
+# Environment management
+python-dotenv
+
+# Type hints (for Python < 3.12)
+typing-extensions
+
+# OpenAI SDK
+openai
+
+# Future dependencies (for real API implementations)
+# Uncomment when moving from mock to real processors:
+
+# Voice processing (Whisper API)
+# Already included in openai package above
+
+# Image processing (GPT-4 Vision)
+# Already included in openai package above
+
+# Optional: Advanced image processing
+# pillow==10.2.0  # For image manipulation
+# pytesseract==0.3.10  # For OCR text extraction
+# opencv-python==4.9.0  # For advanced image processing
+
+# Optional: Audio processing
+# pydub==0.25.1  # For audio manipulation
+# soundfile==0.12.1  # For audio file handling
+
+# Optional: Async support
+# aiofiles==23.2.1  # For async file operations
+# httpx==0.26.0  # For async HTTP requests

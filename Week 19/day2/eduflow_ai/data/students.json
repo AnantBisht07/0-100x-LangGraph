@@ -1,0 +1,30 @@
+{
+  "rahul": {
+    "name": "Rahul",
+    "difficulty": "easy",
+    "correct_answers": 0,
+    "wrong_answers": 0,
+    "last_topic": "Python Basics"
+  },
+  "priya": {
+    "name": "Priya",
+    "difficulty": "medium",
+    "correct_answers": 8,
+    "wrong_answers": 2,
+    "last_topic": "Python Loops"
+  },
+  "aman": {
+    "name": "Aman",
+    "difficulty": "hard",
+    "correct_answers": 15,
+    "wrong_answers": 3,
+    "last_topic": "Functions"
+  },
+  "anant": {
+    "name": "Anant",
+    "difficulty": "medium",
+    "correct_answers": 1,
+    "wrong_answers": 1,
+    "last_topic": "Variables and Data Types"
+  }
+}

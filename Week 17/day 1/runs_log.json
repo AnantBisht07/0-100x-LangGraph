@@ -1,0 +1,110 @@
+[
+  {
+    "run_id": "76e92978-6210-4a07-ae95-db7752eb9d6a",
+    "timestamp": "2026-02-21T17:18:26.640150+00:00",
+    "prompt_version": "v1.0",
+    "model": "openai/gpt-4o-mini",
+    "input": "What is python?",
+    "output": "Python is a high-level, interpreted programming language known for its readability and simplicity. It supports multiple programming paradigms, including procedural, object-oriented, and functional programming. Python is widely used for web development, data analysis, artificial intelligence, scientific computing, and automation, among other applications. It has a large standard library and a vibrant community, making it a popular choice for developers.",
+    "latency_seconds": 3.0192,
+    "token_usage": {
+      "prompt_tokens": 28,
+      "completion_tokens": 76,
+      "total_tokens": 104
+    },
+    "feedback": {
+      "rating": 2,
+      "comment": "This is very high-level not for begginers."
+    }
+  },
+  {
+    "run_id": "8f80412f-2a7d-4437-9d04-36fa9c106a32",
+    "timestamp": "2026-02-21T17:19:39.120401+00:00",
+    "prompt_version": "v1.0",
+    "model": "openai/gpt-4o-mini",
+    "input": "What are the key differences between RAG and fine-tuning?",
+    "output": "Retrieval-Augmented Generation (RAG) and fine-tuning are two distinct approaches used in natural language processing models. Here are the key differences:\n\n1. **Methodology**:\n   - **RAG**: Combines a retrieval mechanism with generation. It retrieves relevant documents or information from a knowledge base and uses that to inform the response generation process.\n   - **Fine-tuning**: Involves adjusting the weights of a pre-trained model on a specific dataset to improve performance on a particular task. This is a supervised learning method.\n\n2. **Data Usage**:\n   - **RAG**: Leverages external knowledge sources dynamically during inference, allowing it to handle queries with information beyond the model's original training.\n   - **Fine-tuning**: Requires a labeled dataset for the specific task at hand, restricting the model to the knowledge encapsulated in the training data.\n\n3. **Flexibility**:\n   - **RAG**: More flexible and adaptive as it can retrieve the latest or diverse information at inference time, making it useful for tasks requiring up-to-date knowledge.\n   - **Fine-tuning**: Offers a more static approach; once the model is fine-tuned, it does not change unless it is further re-trained.\n\n4. **Performance**:\n   - **RAG**: Typically excels at tasks where contextual or factual data from external sources can enhance generation, such as complex question answering.\n   - **Fine-tuning**: Can achieve high performance for well-defined tasks but may struggle with queries requiring information not present in the fine-tuning dataset.\n\n5. **Complexity**:\n   - **RAG**: More complex to implement due to the need for an efficient retrieval system alongside the generation model.\n   - **Fine-tuning**: Simpler in terms of architecture, generally focusing solely on model training and evaluation.\n\nIn summary, RAG integrates retrieval of external information with generation, while fine-tuning adapts a model to a specific task using existing data.",
+    "latency_seconds": 7.3021,
+    "token_usage": {
+      "prompt_tokens": 37,
+      "completion_tokens": 406,
+      "total_tokens": 443
+    },
+    "feedback": {
+      "rating": 4,
+      "comment": ""
+    }
+  },
+  {
+    "run_id": "8d8cb31b-7191-48dc-9c4f-d5887b126858",
+    "timestamp": "2026-02-21T17:20:32.708443+00:00",
+    "prompt_version": "v2.0",
+    "model": "openai/gpt-4o-mini",
+    "input": "What are the key differences between RAG and fine-tuning?",
+    "output": "RAG (Retrieval-Augmented Generation) and fine-tuning are both methods employed in the context of enhancing the capabilities of machine learning models, particularly in natural language processing (NLP). However, they operate on fundamentally different principles and methodologies. Below, I outline the key differences between RAG and fine-tuning:\n\n### 1. **Purpose and Approach**\n\n- **RAG (Retrieval-Augmented Generation)**:\n  - **Purpose**: RAG is designed to improve the generation of text by incorporating external information from a retrieval step. It combines retrieval of relevant documents or passages from a knowledge base with the generative capabilities of language models.\n  - **Approach**: RAG first retrieves contextually relevant information based on the input query using a retriever model. This information is then fed into a generation model, allowing it to construct responses grounded in real-world data or external knowledge.\n\n- **Fine-Tuning**:\n  - **Purpose**: The goal of fine-tuning is to adapt a pre-trained language model to a specific task or domain, enhancing its performance on that type of task.\n  - **Approach**: Fine-tuning involves training the pre-trained language model on a new dataset that is usually smaller and task-specific, adjusting its weights to improve its performance on the desired task (e.g., sentiment analysis, text classification).\n\n### 2. **Data Dependencies**\n\n- **RAG**:\n  - **Data Requirements**: RAG requires a separate knowledge base or document corpus to retrieve information from, which can be large and diverse. This external database acts as a source of truth for up-to-date and factual information.\n  - **Retrieval vs. Generation**: The effectiveness of RAG relies on the quality of both the retrieval mechanism and the generation algorithm, often requiring both components to be optimized together.\n\n- **Fine-Tuning**:\n  - **Data Requirements**: Fine-tuning depends solely on a labeled dataset specifically tailored for the task. This dataset usually contains examples (input-output pairs) that the model learns from.\n  - **Single Model Focus**: Fine-tuning focuses on modifying a specific pretrained model, rather than requiring an external source of knowledge.\n\n### 3. **Performance Characteristics**\n\n- **RAG**:\n  - **Answer Quality**: RAG can produce answers that are more informed and contextually relevant to the user's query by dynamically retrieving external knowledge. It excels in scenarios where up-to-date information is crucial.\n  - **Incorporation of Diverse Knowledge**: By leveraging retrieval, RAG has access to a broader range of facts and figures, making it particularly effective for tasks requiring knowledge that changes over time.\n\n- **Fine-Tuning**:\n  - **Task-Specific Performance**: Fine-tuned models typically perform exceptionally well on the specific task they were fine-tuned on, producing high accuracy but may lack generalizability to tasks outside of the training domain.\n  - **Limited to Training Data**: The model's knowledge is constrained to the data it was fine-tuned on, which could lead to obsolescence if the dataset does not reflect current knowledge.\n\n### 4. **Implementation Complexity**\n\n- **RAG**:\n  - **Complexity**: Implementing RAG can be more complex because it involves two models (retriever and generator) and the design considerations for efficiently integrating these components.\n  - **Latency**: The retrieval step can introduce latency, especially if the document corpus is large and requires significant computational resources to search effectively.\n\n- **Fine-Tuning**:\n  - **Simplicity**: Fine-tuning is generally simpler to implement as it only involves training a single model on labeled data.\n  - **Efficiency**: Once fine-tuned, the model runs inference in a single step operation without needing to retrieve external information.\n\n### Conclusion\n\nIn summary, RAG and fine-tuning serve different purposes and utilize different mechanisms to enhance NLP models. RAG emphasizes integration of external knowledge through retrieval, while fine-tuning focuses on adapting models to specific tasks based on labeled data. The choice between these methods depends largely on the specific application needs, data availability, and the desired characteristics of the output generated by the model.",
+    "latency_seconds": 12.9612,
+    "token_usage": {
+      "prompt_tokens": 50,
+      "completion_tokens": 854,
+      "total_tokens": 904
+    },
+    "feedback": {
+      "rating": 5,
+      "comment": ""
+    }
+  },
+  {
+    "run_id": "17c2399d-45a2-4ebc-9ba4-42cd4d1b7915",
+    "timestamp": "2026-02-21T17:28:06.344998+00:00",
+    "prompt_version": "v1.0",
+    "model": "openai/gpt-4o-mini",
+    "input": "What is fast api?",
+    "output": "FastAPI is a modern, fast (high-performance) web framework for building APIs with Python 3.6+ based on standard Python type hints. It is designed to create RESTful APIs quickly and easily while ensuring performance and correctness. FastAPI supports asynchronous programming, automatic generation of OpenAPI documentation, and type validation, making it a popular choice for developers. Its ease of use and integration with Python's type-checking capabilities facilitate the development of robust applications.",
+    "latency_seconds": 3.1771,
+    "token_usage": {
+      "prompt_tokens": 29,
+      "completion_tokens": 92,
+      "total_tokens": 121
+    },
+    "feedback": {
+      "rating": 4,
+      "comment": ""
+    }
+  },
+  {
+    "run_id": "d675667d-8cb9-4870-a5a5-31993aa58bec",
+    "timestamp": "2026-02-21T17:28:24.218751+00:00",
+    "prompt_version": "v1.0",
+    "model": "openai/gpt-4o-mini",
+    "input": "What are the key differences between python and javascript?",
+    "output": "Python and JavaScript are both popular programming languages, but they have several key differences:\n\n1. **Syntax and Readability**:\n   - **Python**: Known for its clear and readable syntax, which emphasizes code readability. Uses indentation to define code blocks.\n   - **JavaScript**: Syntax is more complex, similar to C/C++. Uses curly braces to define code blocks.\n\n2. **Usage**:\n   - **Python**: Widely used for backend development, data science, machine learning, automation, and scripting.\n   - **JavaScript**: Primarily used for front-end web development but also applicable in backend (Node.js) and mobile app development.\n\n3. **Execution Environment**:\n   - **Python**: Typically run on a server or local machine. Requires a runtime environment like Python interpreter.\n   - **JavaScript**: Initially run in browsers, enabling interactive web pages; can also run on servers (e.g., Node.js).\n\n4. **Type System**:\n   - **Python**: Dynamically typed, but allows for optional type hints.\n   - **JavaScript**: Also dynamically typed, but with more complex features like prototypes and asynchronous behavior.\n\n5. **Object-Oriented Programming**:\n   - **Python**: Class-based with a clear object model, supporting multiple inheritance.\n   - **JavaScript**: Prototype-based, where objects can inherit from other objects without a classical class structure (though ES6 introduced class syntax).\n\n6. **Standard Libraries**:\n   - **Python**: Rich standard libraries, especially for data manipulation, scientific computing, and web frameworks (e.g., Django, Flask).\n   - **JavaScript**: Extensive libraries and frameworks for web development (e.g., React, Angular, Vue), but larger standard libraries less emphasized.\n\n7. **Community and Ecosystem**:\n   - Both have vibrant communities, but focus on different areas, with Python being strong in data science and JavaScript excelling in web technologies.\n\n8. **Concurrency Model**:\n   - **Python**: Uses threading, multiprocessing, and async/await but can be limited by the Global Interpreter Lock (GIL).\n   - **JavaScript**: Uses an event-driven, non-blocking I/O model, which is effective for handling concurrent operations in web development.\n\nThese differences shape how and where each language is best applied in development projects.",
+    "latency_seconds": 6.9484,
+    "token_usage": {
+      "prompt_tokens": 34,
+      "completion_tokens": 483,
+      "total_tokens": 517
+    },
+    "feedback": {
+      "rating": 4,
+      "comment": ""
+    }
+  },
+  {
+    "run_id": "11f17258-33c5-4d9d-b067-b27cca44c2c9",
+    "timestamp": "2026-02-21T17:29:17.903537+00:00",
+    "prompt_version": "v2.0",
+    "model": "openai/gpt-4o-mini",
+    "input": "What are the key differences between python and javascript?",
+    "output": "Python and JavaScript are both popular programming languages, but they are designed for different use cases and have distinct characteristics. Below, I outline the key differences between the two:\n\n### 1. **Use Cases**\n   - **Python**:\n     - General-purpose language.\n     - Commonly used in data science, artificial intelligence, machine learning, web development (back-end with frameworks like Django and Flask), automation, scripting, and desktop applications.\n   - **JavaScript**:\n     - Primarily a web development language.\n     - Initially designed for adding interactivity to websites, it is the de facto language for front-end web development and is also widely used on the server side (with Node.js).\n\n### 2. **Syntax and Readability**\n   - **Python**:\n     - Emphasizes code readability and uses indentation to define code blocks.\n     - Syntax is designed to be clean and easy to understand, making it an attractive option for beginners.\n   - **JavaScript**:\n     - Uses braces `{}` to define code blocks and semicolons `;` to terminate statements (though semicolons can be omitted in some cases).\n     - The syntax can be more complex, especially with the use of callbacks, promises, and asynchronous code patterns.\n\n### 3. **Data Types**\n   - **Python**:\n     - Strongly typed language. Types are explicitly declared, and type checking is enforced.\n     - Supports a wide range of data types, including lists, tuples, dictionaries, sets, etc.\n   - **JavaScript**:\n     - Dynamically typed language. Variables can hold any type of value and can be reassigned to different types.\n     - Objects and arrays are the primary data structures, with objects serving as associative arrays.\n\n### 4. **Execution Environment**\n   - **Python**:\n     - Primarily executed on the server side or as standalone applications.\n     - Can run in various environments, including local machines, servers, and cloud platforms.\n   - **JavaScript**:\n     - Executed in the web browser and on the server side (with Node.js).\n     - The browser environment allows for real-time interaction with the Document Object Model (DOM).\n\n### 5. **Object-Oriented Programming**\n   - **Python**:\n     - Supports multiple programming paradigms, including procedural, object-oriented, and functional programming.\n     - Its object-oriented features are straightforward, using classes and inheritance.\n   - **JavaScript**:\n     - Primarily prototype-based, meaning objects can be created from existing objects via prototypes.\n     - It has seen the addition of more traditional object-oriented features in ES6, such as `class` syntax.\n\n### 6. **Libraries and Frameworks**\n   - **Python**:\n     - Rich ecosystem of libraries for various applications (e.g., NumPy, Pandas for data analysis, TensorFlow for machine learning, Flask and Django for web development).\n   - **JavaScript**:\n     - Extensive set of libraries and frameworks, especially for web development (e.g., React, Angular, Vue.js for front-end; Express.js for back-end).\n\n### 7. **Community and Industry Trends**\n   - **Python**:\n     - Strong community support in scientific computing and academic research, gaining popularity in data-intensive fields.\n   - **JavaScript**:\n     - Continuous growth in web technologies and frameworks, with a strong community in front-end and full-stack development.\n\n### 8. **Concurrency Model**\n   - **Python**:\n     - Multi-threading and multiprocessing support, but with a Global Interpreter Lock (GIL) that can limit performance in CPU-bound applications.\n   - **JavaScript**:\n     - Uses an event-driven, non-blocking I/O model, making it highly suitable for asynchronous programming and handling multiple tasks concurrently without multi-threading.\n\n### Conclusion\nIn summary, while both Python and JavaScript have overlapping capabilities, they are often chosen based on the specific needs of the project. Python's simplicity and extensive libraries make it ideal for data analysis and back-end development, while JavaScript's strength in web development and interactivity makes it essential for creating dynamic web applications.",
+    "latency_seconds": 14.4385,
+    "token_usage": {
+      "prompt_tokens": 47,
+      "completion_tokens": 843,
+      "total_tokens": 890
+    },
+    "feedback": {
+      "rating": 5,
+      "comment": ""
+    }
+  }
+]

@@ -1,0 +1,213 @@
+Today we are building a Feedback-Aware Evaluation Pipeline. Before we touch any code, let me explain what that means. Every time our system runs, it is going to call an AI model, measure how long the response took, show the output to the user, ask the user to rate it, and save everything — the input, the output, the timing, the rating — into a structured file. That file becomes our evaluation database. Over time it tells us which version of our prompt is performing best. That is the goal. Now let's go through every file.
+
+---
+
+Open run_metadata.py.
+
+Line 5: class RunMetadata. We are creating a class whose only job is to hold the identity of one run. Think of it like a name tag. Every single time the pipeline runs, we create one of these objects and it stamps that run with four pieces of information.
+
+Line 8: def __init__(self, prompt_version: str, model_name: str). This is the constructor. It takes two arguments from outside: prompt_version and model_name. These are passed in by whoever creates the object. The colon-str after each argument is a type hint — it tells other developers these should be strings.
+
+Line 9: self.run_id = str(uuid.uuid4()). uuid.uuid4() generates a completely random unique identifier. No two calls to uuid4 will ever produce the same value. We wrap it in str() because uuid4 returns a UUID object and we want a plain string for JSON serialization. This run_id is how we will identify this specific run forever.
+
+Line 10: self.timestamp = datetime.now(timezone.utc).isoformat(). datetime.now gives us the current date and time. We pass timezone.utc to make sure it is always in UTC regardless of where the machine is running. isoformat converts it to a standard string format like 2026-02-27T10:45:00+00:00. We store this as a string because JSON does not have a native datetime type.
+
+Line 11: self.prompt_version = prompt_version. We store the prompt version that was passed in. This tells us which system prompt was active during this run.
+
+Line 12: self.model_name = model_name. We store the model name that was passed in. This tells us which model was called.
+
+Line 14: def to_dict(self) -> dict. This method converts this object into a plain Python dictionary. The arrow notation -> dict is a return type hint. It says this function will return a dictionary.
+
+Lines 15 to 20: We return a dictionary with four keys. run_id, timestamp, prompt_version, and model. We use the word model as the key instead of model_name to keep the JSON output clean and short. This dictionary is what gets written into the log file. We need this method because Python objects cannot be written directly to JSON but dictionaries can.
+
+---
+
+Open run_logger.py.
+
+Line 1 and 2 are imports. Seen before, move on.
+
+Line 4: LOG_FILE = "runs_log.json". This is a module-level constant. It defines the name of the file where we will store all our run records. By putting it here at the top, if we ever want to change the filename we only change it in one place.
+
+Line 7: class RunLogger. This class has one responsibility: reading from and writing to the log file.
+
+Line 10: def __init__(self, log_path: str = LOG_FILE). The constructor takes a log_path argument. The equals sign after it means LOG_FILE is the default value. So if you create RunLogger() with no arguments, it automatically uses "runs_log.json". If you want to write to a different file you can pass a different path.
+
+Line 11: self.log_path = log_path. We store the path as an attribute so every method in this class knows where the file is.
+
+Line 13: def _load_existing(self) -> list. The underscore at the beginning of the name is a Python convention. It signals that this method is internal — meant to be used by other methods inside this class, not called from outside. It returns a list, which will be the array of run records.
+
+Line 14: if not os.path.exists(self.log_path). os.path.exists checks whether a file actually exists at that path. We write not in front of it, so this reads as: if the file does NOT exist. On the very first run there is no log file yet. So we handle that case here.
+
+Line 15: return []. If the file does not exist we return an empty list. The append method will start with this empty list and add the first entry to it.
+
+Line 16: try. Everything from here to the except is code that might fail. We are being defensive because reading a file can go wrong in multiple ways.
+
+Line 17: with open(self.log_path, "r", encoding="utf-8") as f. We open the file in read mode, r. encoding="utf-8" ensures we handle any special characters correctly. The with statement automatically closes the file when we are done, even if something goes wrong.
+
+Line 18: data = json.load(f). json.load reads the entire file and parses it as JSON. It converts the JSON array into a Python list. If the file is valid JSON this works perfectly.
+
+Line 19: return data if isinstance(data, list) else []. isinstance(data, list) checks whether what we got back is actually a list. If someone manually edited the file and accidentally changed the structure, this check saves us. If it is a list we return it. If it is anything else we return an empty list. The if-else on one line is called a ternary expression.
+
+Line 20: except (json.JSONDecodeError, OSError). We catch two types of errors. json.JSONDecodeError happens when the file exists but the JSON inside is broken — for example if the program crashed while writing and left the file half-written. OSError happens when there is a file permission problem or some other system-level issue reading the file.
+
+Line 21: return []. In either error case we return an empty list. We do not crash. We do not stop the pipeline. We just start fresh. This is called graceful degradation.
+
+Line 23: def append(self, entry: dict) -> None. This is the main method for saving a run. It takes a dictionary called entry and returns nothing, which is what -> None means.
+
+Line 24: entries = self._load_existing(). We call our internal method to get whatever entries are already saved. This might be an empty list on the first run, or a list of dozens of previous runs.
+
+Line 25: entries.append(entry). We add the new entry to the end of the list. The list now contains all previous entries plus the new one.
+
+Line 26: with open(self.log_path, "w", encoding="utf-8") as f. We open the file in write mode, w. This mode overwrites whatever was in the file before. But that is okay because we already loaded all the old entries into memory on line 24. We are rewriting the complete updated array.
+
+Line 27: json.dump(entries, f, indent=2, ensure_ascii=False). json.dump converts the Python list back to JSON and writes it to the file. indent=2 means each level of nesting will be indented by 2 spaces, which makes the file readable by humans. ensure_ascii=False allows characters from any language to be written without being escaped.
+
+Line 29: def compute_average_rating(self) -> None. This is the evaluation function. It reads the log and computes the average rating per prompt version.
+
+Line 31: entries = self._load_existing(). Load all the logged runs.
+
+Lines 33 to 35: if not entries. If there are no entries at all, print a message and return immediately. The return here exits the function early.
+
+Line 37: version_ratings = {}. We create an empty dictionary. We will use it to group ratings by prompt version. The keys will be version strings like v1.0 and the values will be lists of integer ratings.
+
+Line 38: for entry in entries. We loop through every run record in the log.
+
+Line 39: version = entry.get("prompt_version", "unknown"). .get is a dictionary method that retrieves a value by key. The second argument "unknown" is the default — if the key prompt_version does not exist in this entry for some reason, we use "unknown" instead of getting a KeyError.
+
+Line 40: feedback = entry.get("feedback"). We try to get the feedback field. If feedback was skipped for this run, this returns None.
+
+Line 41: if feedback and isinstance(feedback.get("rating"), int). Two conditions joined by and. First we check that feedback is not None. Then we check that feedback contains a rating key and that its value is actually an integer. We do both checks because we never want to try doing math on a None value or a string.
+
+Line 42: version_ratings.setdefault(version, []).append(feedback["rating"]). This is the key line. setdefault is a dictionary method that does two things in one step. It says: if the key version does not already exist in version_ratings, create it right now with an empty list as its value. Then return whatever the value is — either the newly created empty list or the existing list. We immediately call append on that list to add the current rating. So after this line, version_ratings["v1.0"] might be [4, 3, 5] and version_ratings["v2.0"] might be [4].
+
+Lines 44 to 46: if not version_ratings. If after looping through every entry we still have no ratings — because all runs had feedback skipped — we print a message and return.
+
+Line 49: for version, ratings in sorted(version_ratings.items()). We loop through the grouped ratings. .items() gives us key-value pairs. sorted() alphabetically sorts the versions so v1.0 always appears before v2.0.
+
+Line 50: avg = sum(ratings) / len(ratings). sum adds all the numbers in the list. len gives us the count. Dividing gives us the average.
+
+Line 51: print(f"  {version}: {avg:.2f}  (n={len(ratings)} runs)"). We print the version name, the average formatted to exactly two decimal places with :.2f, and how many runs contributed to that average.
+
+---
+
+Open feedback_collector.py.
+
+Line 1: class FeedbackCollector. This class has one job: ask the user to evaluate the model response.
+
+Line 4: def collect(self, feedback_enabled: bool = True). The collect method takes a flag called feedback_enabled. The default is True, meaning feedback is collected by default. The bool type hint says this should be True or False.
+
+Lines 5 to 6: if not feedback_enabled: return None. If the caller passes feedback_enabled=False, we skip everything and return None immediately. This is important for automated testing where no human is sitting at the keyboard.
+
+Line 8: print("\n--- Feedback ---"). Prints a visual separator so the user knows the feedback section is starting.
+
+Line 9: rating = self._get_rating(). We call our internal method to get a validated integer rating from the user.
+
+Line 10: comment = input("Optional comment (press Enter to skip): ").strip(). We ask for a free-text comment. .strip() removes any leading or trailing whitespace. If the user just presses Enter, they get an empty string, which is perfectly valid.
+
+Line 12: return {"rating": rating, "comment": comment}. We return a dictionary with exactly two keys. This structured format is what gets saved into the log entry.
+
+Line 14: def _get_rating(self) -> int. The internal method for getting the rating. It returns an integer.
+
+Line 15: while True. This loop runs forever until we explicitly call return inside it. We use this pattern when we need to keep asking until we get valid input.
+
+Line 16: raw = input("Rate this response (1–5): ").strip(). We ask the user for a rating and store it as a string in raw.
+
+Lines 17 to 18: try: rating = int(raw). We try to convert the string to an integer. If the user typed a word or left it blank, this conversion fails and throws a ValueError.
+
+Lines 19 to 20: if 1 <= rating <= 5: return rating. This is a chained comparison. It is equivalent to writing rating >= 1 and rating <= 5 but more readable. If the rating is within the valid range, we return it. Returning from inside a while True loop is how we exit the loop.
+
+Line 21: print("  Please enter a number between 1 and 5."). If the number is outside the range, we print this message. The loop then starts over from the top and asks again.
+
+Lines 22 to 23: except ValueError: print(...)  If int(raw) failed because the input was not a number at all, we print this error message. The loop starts over from the top.
+
+---
+
+Open agent_executor.py. This is the most important file. It is the orchestrator — it calls every other module in the right order.
+
+Lines 1 to 9 are imports. load_dotenv is the function that reads our .env file and loads the API key into the environment before anything else runs.
+
+Line 11: load_dotenv(). We call this immediately at module level, outside any function. This means it runs the moment this file is imported. By the time any function is called, the environment variables are already set.
+
+Lines 13 to 17: PROMPT_VERSIONS = {...}. This is a dictionary defined at module level. It maps version names to system prompt strings. v1.0 maps to a concise assistant. v2.0 maps to a detailed structured assistant. v3.0 maps to an expert-level assistant. This is called a registry. Adding a new prompt version means adding one line here and nowhere else in the codebase. Because we log the version string with every run, we can always trace which system prompt produced which output.
+
+Line 20: def run_agent_with_feedback(input_text: str, prompt_version: str, feedback_enabled: bool = True) -> str. This is the main function. It takes the user's query, the selected prompt version, and optionally the feedback flag. It returns a string, which is the model's output.
+
+Lines 22 to 23: if prompt_version not in PROMPT_VERSIONS. The in keyword checks whether a key exists in a dictionary. If the version the caller passed is not one of our defined versions, we raise a ValueError. We do this check first, before any API call, because there is no point spending time or money on a request if the configuration is invalid.
+
+Line 26: api_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENROUTER_API_KEY"). os.getenv reads an environment variable by name. The or means: try the first one, and if it is None or empty, try the second one. We support both key names so students using OpenAI directly and students using OpenRouter can both run the same code.
+
+Lines 27 to 28: if not api_key: raise EnvironmentError(...). If neither key is found, we raise an EnvironmentError with a message that tells the user exactly what to add to their .env file. We do not silently fail or use a default. We make the problem explicit.
+
+Line 30: base_url = os.getenv("OPENAI_BASE_URL", "https://openrouter.ai/api/v1"). os.getenv with two arguments: the first is the key name, the second is the default value if the key is not set. So if OPENAI_BASE_URL is not in the environment, we fall back to the OpenRouter URL.
+
+Line 31: model_name = os.getenv("MODEL_NAME", "openai/gpt-4o-mini"). Same pattern. If MODEL_NAME is not set in the environment, we use gpt-4o-mini as the default.
+
+Line 34: metadata = RunMetadata(prompt_version=prompt_version, model_name=model_name). We create the metadata object before the API call. This is deliberate. The timestamp inside RunMetadata represents when the run started. If we created it after the call, the timestamp would be wrong.
+
+Line 37: client = OpenAI(api_key=api_key, base_url=base_url). We create the OpenAI client with our API key and base URL. This is the object we will use to make the API call.
+
+Line 39: start = time.perf_counter(). perf_counter gives us a high-resolution timer in seconds. We call it right before the API call to mark the start time.
+
+Lines 40 to 46: response = client.chat.completions.create(...). This is the API call. We pass the model name. We pass a list of messages. The first message has role "system" and its content is PROMPT_VERSIONS[prompt_version] — we look up the system prompt for whatever version was selected. The second message has role "user" and its content is the input_text from the user. The API returns a response object.
+
+Line 47: latency_seconds = round(time.perf_counter() - start, 4). We call perf_counter again and subtract the start time. This gives us how many seconds the API call took. round with 4 means we keep four decimal places, so we get precision down to tenths of a millisecond.
+
+Line 50: output_text = response.choices[0].message.content or "". response.choices is a list of possible outputs. We take index 0, the first one. .message.content is the actual text string. The or "" at the end means if content is None for any reason, we fall back to an empty string rather than crashing.
+
+Line 52: token_usage = None. We start with None. We only change this if the API actually returned usage data.
+
+Lines 53 to 58: if response.usage. Not every API provider returns token usage information. We check if it exists before trying to read it. If it does exist, we build a dictionary with three values: prompt_tokens is how many tokens our input used, completion_tokens is how many tokens the model's response used, total_tokens is the sum of both. These numbers are useful for tracking API costs.
+
+Lines 61 to 65: We print the model's output between two separator lines so it is visually clear in the terminal.
+
+Line 68: feedback = FeedbackCollector().collect(feedback_enabled=feedback_enabled). We create a FeedbackCollector instance and immediately call collect on it. We pass through the feedback_enabled flag from this function's parameter. The result is either a dictionary with rating and comment, or None if feedback was skipped.
+
+Lines 71 to 76: entry = {**metadata.to_dict(), "input": input_text, "output": output_text, "latency_seconds": latency_seconds}. We are building the complete log entry dictionary. The double star before metadata.to_dict() is called dictionary unpacking. It takes every key-value pair inside the metadata dictionary and spreads them directly into this new dictionary. So run_id, timestamp, prompt_version, and model all become top-level keys in entry. Then we add input, output, and latency_seconds as additional keys. The result is one flat dictionary with everything in it.
+
+Lines 77 to 78: if token_usage: entry["token_usage"] = token_usage. We only add the token_usage key if it actually has data. If the provider did not return usage, token_usage is None, and this if block does not run. The key simply does not exist in the entry. We do this deliberately so we do not have "token_usage": null in our JSON, which would cause issues later when we try to do calculations on the log.
+
+Lines 79 to 80: if feedback: entry["feedback"] = feedback. Same pattern. If the user skipped feedback, feedback is None. We do not add a null feedback key. We only add it when there is real data.
+
+Line 83: RunLogger().append(entry). We create a RunLogger and immediately call append with the complete entry. This writes everything to runs_log.json.
+
+Line 84: print(f"[Logged] run_id: {metadata.run_id}"). We print the run_id so the user can see that the run was saved and can find it in the file.
+
+Line 86: return output_text. We return the model's text output. This allows main.py or any other caller to use the output if needed.
+
+---
+
+Open main.py.
+
+Line 1: from agent_executor import PROMPT_VERSIONS, run_agent_with_feedback. We import two things from agent_executor. The PROMPT_VERSIONS dictionary so we can display the options to the user, and the main function so we can call the pipeline.
+
+Line 2: from run_logger import RunLogger. We import RunLogger so we can call compute_average_rating at the end.
+
+Line 5: def main(). This is the entry point. It has no parameters.
+
+Lines 6 to 8: We print a header. Sixty equals signs, a title, sixty more equals signs.
+
+Line 10: query = input("\nEnter your query: ").strip(). We ask the user for their question. .strip() removes any whitespace from the beginning or end.
+
+Lines 11 to 13: if not query. If the user just pressed Enter and query is an empty string, we print a message and return. Return here exits the main function immediately.
+
+Lines 15 to 17: We loop through PROMPT_VERSIONS.items() and print each version and its description. This shows the user what options are available before asking them to choose.
+
+Lines 19 to 23: while True loop for version selection. We take input, strip it, and check if it exists in PROMPT_VERSIONS using the in keyword. If it does we break out of the while loop. If it does not we print the valid options and the loop runs again.
+
+Lines 25 to 32: try block. We call run_agent_with_feedback with the query and the selected version. This triggers the entire pipeline. We catch EnvironmentError separately because that is the specific error for a missing API key — we print "[Config Error]" to make the fix obvious. The broader except Exception catches any other unexpected error and prints "[Error]" followed by the message.
+
+Line 34: show = input("\nShow average ratings by prompt version? (y/n): ").strip().lower(). We ask if the user wants to see the evaluation summary. .lower() converts whatever they type to lowercase so both Y and y work.
+
+Lines 35 to 36: if show == "y": RunLogger().compute_average_rating(). If they said yes, we create a RunLogger and call the function that reads the log and prints the averages grouped by prompt version.
+
+Lines 39 to 40: if __name__ == "__main__": main(). This is a Python standard. __name__ is a special variable. When you run a file directly with python main.py, Python sets __name__ to the string "__main__". When another file imports from main.py, __name__ is set to the module name instead. So this block only runs when we execute the file directly. It prevents main() from running accidentally during imports.
+
+---
+
+Now open runs_log.json. Look at what was written after a run.
+
+You will see a JSON array, which is a list in square brackets. Each element inside is one run record in curly braces. Look at the first entry. run_id is the UUID we generated. timestamp is the UTC time. prompt_version is whichever version the user selected. model is the model name. input is the exact text the user typed. output is the exact text the model returned. latency_seconds is a decimal number showing how many seconds the API call took. If the provider returned token data you will see token_usage with prompt_tokens, completion_tokens, and total_tokens. And if the user gave feedback you will see feedback with rating and comment.
+
+Every field in that entry was assembled by our code. The UUID came from RunMetadata. The latency came from perf_counter. The token counts came from response.usage. The rating came from FeedbackCollector. All of it was packaged by run_agent_with_feedback and saved by RunLogger.
+
+Run the pipeline a few more times. Try different prompt versions. Give different ratings. Then go back to the terminal and when it asks about average ratings type y. You will see something like v1.0 with an average of 3.5 from two runs, v2.0 with an average of 4.0 from one run. Those numbers are the point of everything we built. They tell you which system prompt users actually prefer. Not by opinion, but by data.

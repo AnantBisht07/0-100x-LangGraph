@@ -1,0 +1,20 @@
+[
+  {
+    "run_id": "55edf834-7769-49c2-a3f0-82c8aa8156d5",
+    "timestamp": "2026-02-27T14:18:56.927870+00:00",
+    "prompt_version": "v1.0",
+    "model": "openai/gpt-4o-mini",
+    "input": "what is python?",
+    "output": "Python is a high-level, interpreted programming language known for its readability and simplicity. It supports multiple programming paradigms, including procedural, object-oriented, and functional programming. Python is widely used for web development, data analysis, artificial intelligence, scientific computing, automation, and more. Its extensive standard library and large ecosystem of third-party packages make it versatile and powerful for various applications.",
+    "latency_seconds": 7.3016,
+    "token_usage": {
+      "prompt_tokens": 21,
+      "completion_tokens": 75,
+      "total_tokens": 96
+    },
+    "feedback": {
+      "rating": 2,
+      "comment": ""
+    }
+  }
+]

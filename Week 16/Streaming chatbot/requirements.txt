@@ -1,0 +1,13 @@
+# Core LangChain dependencies
+langchain
+langchain-openai
+langchain-core
+
+# Environment management
+python-dotenv
+
+# Type hints (for Python < 3.12)
+typing-extensions
+
+# OpenAI SDK 
+openai

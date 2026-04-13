@@ -1,0 +1,59 @@
+## Stateful Graph
+
+                ┌─────────────────────┐
+                │     START           │ # what are ai agents?
+                └─────────┬───────────┘
+                          │
+                          ▼
+        ┌────────────────────────────────┐
+        │ Agent 1: Interpreter            │
+        │ - Reads: user_question          │
+        │ - Writes: intent, topic         │
+        └─────────┬──────────────────────┘
+                  │   (state updated)
+                  ▼
+        ┌────────────────────────────────┐
+        │ Agent 2: Summarizer             │
+        │ - Reads: topic                  │
+        │ - Writes: summary               │
+        └─────────┬──────────────────────┘
+                  │   (state updated)
+                  ▼
+        ┌────────────────────────────────┐
+        │ Agent 3: Formatter              │
+        │ - Reads: topic, summary         │
+        │ - Writes: final_output          │
+        └─────────┬──────────────────────┘
+                  │
+                  ▼
+                ┌─────────────────────┐
+                │        END          │
+                └─────────────────────┘
+
+
+
+## Stateful Agent- 
+
+        ┌───────────────────────────────┐
+        │        PERSISTENT MEMORY      │
+        │  (DB / File / Vector Store)   │
+        └─────────────┬─────────────────┘
+                      │
+                      │  (read / write)
+                      ▼
+        ┌────────────────────────────────┐
+        │ Agent (Stateful)                │
+        │ - Reads past interactions       │
+        │ - Updates memory                │
+        │ - Changes behavior over time    │
+        └─────────┬──────────────────────┘
+                  │
+                  ▼
+        ┌────────────────────────────────┐
+        │ Output                          │
+        └────────────────────────────────┘
+
+          ↑
+          │
+   Next Run / Next Day
+   (Memory is reused)
